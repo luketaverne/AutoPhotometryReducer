@@ -1,10 +1,4 @@
 #!/usr/bin/env python
-import csv
-import io
-import os
-import subprocess
-import math
-import HelperFunctions
 """Program:     AutoPhotoReducer
     Author:      Luke T. Taverne
       Date:        2/8/15
@@ -22,6 +16,13 @@ Usage:       This program will ask for a step number to execute, corresponding t
               by the user, either in terminal output from this program, or in a file saved
               in the working directory.
 """
+import csv
+import io
+import os
+import subprocess
+import math
+import HelperFunctions
+from pyraf import iraf as ir
 
 # top level working directory, with trailing slash. Like
 # '/data/n2158_phot/n2158/'
@@ -45,8 +46,17 @@ functionDictionary = {0: 'setupDirectories',
                          11: 'alsedt',
                       }
 
-externalProgramDict = {'daophot': ['daophot.e', True]}, # {functionName : [computerFunctionName, exists?]}
-                       'compapcorr': ['compapcorrHDI.e', True]}
+externalProgramDict = {'daophot': ['daophot.e', True], # {functionName : [computerFunctionName, exists?]}
+                       'compapcorr': ['compapcorrHDI.e', True],
+                       'pyraf' : ['pyraf', True],
+                       'ds9' : ['ds9', True],
+                       'dao2iraf' : ['dao2iraf.e', True],
+                       'sm' : ['sm', True],
+                       'pstopdf' : ['pstopdf', True],
+                       'alsedt' : ['alsedt.e', True],
+                       'sigrejfit' : ['sigrejfit.e', True],
+                       'poly' : ['poly.e', True],
+                       'apply_apcorr' : ['apply_apcorrHDI.e', True]}
 
 
 def setupDirectories():
@@ -78,6 +88,14 @@ def setupDirectories():
 
   return
 
+def checkFunctionsExist():
+    for programKey in externalProgramDict:
+        exists = HelperFunctions.which(externalProgramDict[programKey][0])
+        if not exists:
+            externalProgramDict[programKey][1] = False
+            print "Cannot execute program " + programKey + " called as '" + externalProgramDict[programKey][0] +"'"
+
+    return None
 
 def optionFilesExist():
   '''Returns true if all options files are in place. Should be called before each function is executed'''
@@ -117,14 +135,14 @@ def psfCandidateSelection():
 #   file as heredoc strings to prevent strange formatting problems
 ###
 optionFilesExist()
-
+checkFunctionsExist()
 while True:
   try:
-    user_selection = raw_input('What do you want to do?')
+    user_selection = raw_input('What do you want to do? ')
     int(user_selection)
   except ValueError:
     if user_selection == 'q' or user_selection == 'Q':
-      print 'Exiting program now'
+      print 'Goodbye.'
       break
     else:
       print 'Please enter a valid selection'

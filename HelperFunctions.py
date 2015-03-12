@@ -18,3 +18,9 @@ def which(program):
                 return exe_file
 
     return None
+
+def beep():
+    import sys
+    sys.stdout.write("\a\a\a\a\a")
+
+    return None
