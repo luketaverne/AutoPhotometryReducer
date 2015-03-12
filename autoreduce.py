@@ -45,8 +45,8 @@ functionDictionary = {0: 'setupDirectories',
                          11: 'alsedt',
                       }
 
-externalProgramDict = {'daophot': 'daophot.e',
-                       'compapcorr': 'compapcorrHDI.e'}
+externalProgramDict = {'daophot': ['daophot.e', True]}, # {functionName : [computerFunctionName, exists?]}
+                       'compapcorr': ['compapcorrHDI.e', True]}
 
 
 def setupDirectories():

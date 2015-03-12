@@ -11,23 +11,25 @@ class OptionFiles:
     often does). String substitutions can be generated using string.substitute(key="value"). Alternatively
     you can use safe_substitute, although this will cause you to miss a KeyValue excepton if you forget to
     substitute in the value for a key
+
+    DO NOT RUN THIS FILE THROUGH ATOM BEAUTIFY: it will ruin the formatting of the multiline strings.
     """
-    
+
     allStarOpt = Template("""fi=$fwhm
 wa=0
-is=33	
+is=33
 os=36""")
 
     apCorrOpt = Template("""A1 = 4
 A2 = 7
 A3 = 10
-A4 = 13 
-A5 = 16 
-A6 = 18 
-A7 = 21  
-A8 = 24 
+A4 = 13
+A5 = 16
+A6 = 18
+A7 = 21
+A8 = 24
 A9 = 27
-AA = 30 
+AA = 30
 AB = 33
 AC = 36
 IS = 36
@@ -42,7 +44,7 @@ WA=0
 VA=2
 HI=55000
 TH=7
-PS=15 
+PS=15
 LR=-2
 HR=2
 LS=0
@@ -51,24 +53,24 @@ AN=3
 EX=5""")
 
     photoOpt = Template("""A1 = $fwhm
-A2 = 0 
+A2 = 0
 A3 = 7
-A4 = 8 
-A5 = 10 
-A6 = 12 
-A7 = 14  
-A8 = 16 
+A4 = 8
+A5 = 10
+A6 = 12
+A7 = 14
+A8 = 16
 A9 = 18
-AA = 20 
-AB = 22 
+AA = 20
+AB = 22
 AC = 24
-IS = 27 
+IS = 27
 OS = 34 """)
 
     ####
     #
-    # Scripts are located below 
-    # 
+    # Scripts are located below
+    #
     ####
 
     allStarHDIscr = Template("""#!/bin/sh
@@ -150,7 +152,7 @@ allstar8192 < inpfile5 >> allstar.log
 
     apCorrHDIscr = Template("""#!/bin/sh
 #
-# Shell script 
+# Shell script
 #
 rm inpfile?
 #
@@ -697,5 +699,3 @@ rm yplot$2.ps
 rm rplot$2.ps
 #
 """
-
-
