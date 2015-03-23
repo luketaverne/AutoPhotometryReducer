@@ -27,6 +27,7 @@ class OptionFiles:
                                  'mkpsfHDI.scr' : mkpsfHDIscr.substitute(workingDirectory=workingDirectoryVar,currentFrame=currentFrameVar),
                                  'fixmkpsf.scr' : fixMkpsfscr,
                                  'macro1.scr' : macro1scr}
+                                 
 # fwhm
 allStarOpt = Template("""fi=$fwhm
 wa=0
