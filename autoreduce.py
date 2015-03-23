@@ -26,12 +26,12 @@ from pyraf import iraf as ir
 
 # top level working directory, with trailing slash. Like
 # '/data/n2158_phot/n2158/'
-workingDirectory = ''
+dataSetDirectory = ''
 currentFrame = ''     # current frame. Like 'n21157'
 frameFWHM = None   # will hold the FWHM later
 optFilesSetup = False  # true if setup has been completed successfully
 
-functionDictionary = {0: 'setupDirectories',
+functionDictionary = {0: 'getWorkingDirectories',
                          1: 'getFWHM',
                          2: 'setupOptFiles',
                          3: 'psfFirstPass',
@@ -46,7 +46,7 @@ functionDictionary = {0: 'setupDirectories',
                          11: 'alsedt',
                       }
 
-externalProgramDict = {'daophot': ['daophot.e', True], # {functionName : [computerFunctionName, exists?]}
+externalProgramDict = {'daophot': ['daophot', True], # {functionName : [computerFunctionName, exists?]}
                        'compapcorr': ['compapcorrHDI.e', True],
                        'pyraf' : ['pyraf', True],
                        'ds9' : ['ds9', True],
@@ -59,46 +59,58 @@ externalProgramDict = {'daophot': ['daophot.e', True], # {functionName : [comput
                        'apply_apcorr' : ['apply_apcorrHDI.e', True]}
 
 
-def setupDirectories():
+def getWorkingDirectories():
   '''Set up the variables for the working folder and directories. Option 0.'''
-  while True:
-    try:
-      workingDirectory = raw_input(
-          'Enter the current working directory (ex: /data/n2158_phot/n2158/): ')
-      subprocess.call('cd ' + workingDirectory, shell=True)
-    except ValueError, OSError:  # This isn't catching the error
-      print("Unable to cd into that directory. Try again")
-      continue
-    else:
-      # input was okay,
-      break
+  question1 = 'Enter the current working directory (ex: /data/n2158_phot/n2158/): '
+  dataSetDirectory = raw_input(question1)
 
-  while True:
-    try:
-      currentFrame = raw_input(
-          'Enter the frame you want to work on (ex: n21158)')
-      subprocess.call('cd ' + workingDirectory + currentFrame, shell=True)
-    # This isn't catching the invalid directory error
-    except ValueError, OSError:
-      print("Unable to cd into that directory. Try again")
-      continue
-    else:
-      # input was okay,
-      break
+  while not os.path.isdir(dataSetDirectory):
+      print 'Invalid path, try again.'
+      dataSetDirectory = raw_input(question1)
 
-  return
+  if dataSetDirectory[-1] != '/':
+      dataSetDirectory += '/'
+
+  question2 = 'Enter the frame you want to work on (ex: n21158): '
+  currentFrame = raw_input(question2)
+  while not os.path.isdir(dataSetDirectory + currentFrame):
+      print 'Invalid frame selection for ' + dataSetDirectory + currentFrame + ', try again.'
+      currentFrame = raw_input(question2)
+
+  return dataSetDirectory, currentFrame
 
 def checkFunctionsExist():
+    '''Loop through function dictionary to check if all functions are callable'''
+    print '\nChecking function dictionary to make sure all functions are callable before we start reduction...'
+    problem = False
     for programKey in externalProgramDict:
         exists = HelperFunctions.which(externalProgramDict[programKey][0])
         if not exists:
             externalProgramDict[programKey][1] = False
+            problem = True
             print "Cannot execute program " + programKey + " called as '" + externalProgramDict[programKey][0] +"'"
-
+    if problem:
+        print '\nThe function(s) listed above are not callable. You should fix this before proceeding.'
+    else:
+        print '\nAll functions are callable.'
     return None
 
-def optionFilesExist():
+def optionFilesExist( frameDirectory ):
   '''Returns true if all options files are in place. Should be called before each function is executed'''
+  print '\nChecking to see if option files exist...\n'
+  import OptionFiles
+
+  for file in OptionFiles.optionFileDict:
+      if not os.path.exists(frameDirectory + file):
+          print 'Option file ' + file + ' does not exist.'
+          createFile = raw_input('Do you want to create this file from a template? (y/n): ')
+          while createFile not in ['Y', 'y', 'N', 'n']:
+              print 'Invalid response'
+              createFile = raw_input('Do you want to create this file from a template? (y/n): ')
+
+          if createFile in ['Y', 'y']:
+
+
 
   return
 
@@ -126,7 +138,7 @@ def psfCandidateSelection():
 ###
 # Ask the user for the directories they want to use
 ###
-# setupDirectories()
+dataSetDirectory, currentFrame = getWorkingDirectories()
 
 ###
 # Check to see if all of the files we are about to use exist
@@ -134,7 +146,7 @@ def psfCandidateSelection():
 #   or offer to copy them from this program. Store them in another
 #   file as heredoc strings to prevent strange formatting problems
 ###
-optionFilesExist()
+optionFilesExist(dataSetDirectory + currentFrame + '/')
 checkFunctionsExist()
 while True:
   try:

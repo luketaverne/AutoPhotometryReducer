@@ -14,13 +14,30 @@ class OptionFiles:
 
     DO NOT RUN THIS FILE THROUGH ATOM BEAUTIFY: it will ruin the formatting of the multiline strings.
     """
+    def __init__(self, fwhmVar, workingDirectoryVar, currentFrameVar):
+        # need to specify fwhm, workingDirectory and currentFrame
 
-    allStarOpt = Template("""fi=$fwhm
+        self.optionFileDict = {'allstar.opt' : allStarOpt.substitute(fwhm=fwhmVar),
+                                'daophot.opt' : daoPhotOpt.substitute(fwhm=fwhmVar),
+                                 'photo.opt' : photoOpt.substitute(fwhm=fwhmVar),
+                                 'apcorr.opt' : apCorrOpt.substitute(),
+                                 'allstarHDI.scr' : allStarHDIscr.substitute(workingDirectory=workingDirectoryVar,currentFrame=currentFrameVar),
+                                 'apcorrHDI.scr' : apCorrHDIscr.substitute(currentFrame=currentFrameVar),
+                                 'compapcorrHDI.scr' : compApCorrHDIscr.substitute(),
+                                 'mkpsfHDI.scr' : mkpsfHDIscr.substitute(workingDirectory=workingDirectoryVar,currentFrame=currentFrameVar),
+                                 'fixmkpsf.scr' : fixMkpsfscr,
+                                 'macro1.scr' : macro1scr}
+# fwhm
+allStarOpt = Template("""fi=$fwhm
 wa=0
 is=33
 os=36""")
 
-    apCorrOpt = Template("""A1 = 4
+
+
+
+# nothing (for now. Need some to change later on during aperature correction)
+apCorrOpt = Template("""A1 = 4
 A2 = 7
 A3 = 10
 A4 = 13
@@ -35,7 +52,8 @@ AC = 36
 IS = 36
 OS = 38""")
 
-    daoPhotOpt = Template("""RE=9
+# fwhm
+daoPhotOpt = Template("""RE=9
 GA=1.3
 LO=10
 FW=$fwhm
@@ -52,7 +70,8 @@ HS=2
 AN=3
 EX=5""")
 
-    photoOpt = Template("""A1 = $fwhm
+#fwhm
+photoOpt = Template("""A1 = $fwhm
 A2 = 0
 A3 = 7
 A4 = 8
@@ -67,13 +86,14 @@ AC = 24
 IS = 27
 OS = 34 """)
 
-    ####
-    #
-    # Scripts are located below
-    #
-    ####
+####
+#
+# Scripts are located below
+#
+####
 
-    allStarHDIscr = Template("""#!/bin/sh
+# workingDirectory, currentFrame
+allStarHDIscr = Template("""#!/bin/sh
 #
 # Shell script to run ALLSTAR and FIND, PHOT, and ALLSTAR again
 #
@@ -150,7 +170,8 @@ allstar8192 < inpfile5 >> allstar.log
 #
 """)
 
-    apCorrHDIscr = Template("""#!/bin/sh
+# currentFrame
+apCorrHDIscr = Template("""#!/bin/sh
 #
 # Shell script
 #
@@ -312,7 +333,8 @@ chmod +x compapcorrHDI.scr
 ./compapcorrHDI.scr ${currentFrame} 1
 """)
 
-    compApCorrHDIscr = Template("""#!/bin/sh
+# None for now
+compApCorrHDIscr = Template("""#!/bin/sh
 #
 # Shell script to make spatial dependency plots starting from sigrejfit.e
 # Change directory and plot iteration (i.e. xplot1 vs xplot2)
@@ -325,8 +347,8 @@ chmod +x compapcorrHDI.scr
 rm apcorr.out
 rm fit.dat
 rm poly.dat
-rm poly?$2.dat
-rm ?fitpts$2
+rm poly?$$2.dat
+rm ?fitpts$$2
 rm *.log
 rm inpfile?
 #
@@ -334,7 +356,7 @@ rm inpfile?
 echo 'Enter filename of PSF photometry.'
 read apcorr
 #
-echo "$apcorr" > inpfile3
+echo "$$apcorr" > inpfile3
 echo "apcorr.apals" >> inpfile3
 echo "apcorr.out" >> inpfile3
 #
@@ -352,12 +374,12 @@ echo "-10 10 -10 10" >> inpfile0
 echo "2" >> inpfile0
 echo "0" >> inpfile0
 echo "1" >> inpfile0
-echo "rfitpts$2" >> inpfile0
+echo "rfitpts$$2" >> inpfile0
 #
 # Run sigrejfit.e
 #
 sigrejfit.e < inpfile0 > r.log
-echo "Created rfitpts$2"
+echo "Created rfitpts$$2"
 open SPATIALD
 open r.log
 rm inpfile0
@@ -372,12 +394,12 @@ echo "-10 10 -10 10" >> inpfile0
 echo "2" >> inpfile0
 echo "0" >> inpfile0
 echo "1" >> inpfile0
-echo "xfitpts$2" >> inpfile0
+echo "xfitpts$$2" >> inpfile0
 #
 # Run sigrejfit.e
 #
 sigrejfit.e < inpfile0 > x.log
-echo "Created xfitpts$2"
+echo "Created xfitpts$$2"
 open x.log
 rm inpfile0
 #
@@ -391,12 +413,12 @@ echo "-10 10 -10 10" >> inpfile0
 echo "2" >> inpfile0
 echo "0" >> inpfile0
 echo "1" >> inpfile0
-echo "yfitpts$2" >> inpfile0
+echo "yfitpts$$2" >> inpfile0
 #
 # Run sigrejfit.e
 #
 sigrejfit.e < inpfile0 > y.log
-echo "Created yfitpts$2"
+echo "Created yfitpts$$2"
 open y.log
 rm inpfile0
 #
@@ -410,11 +432,11 @@ echo "Enter the r first order term coefficient from r.log"
 read rfirstorder
 #
 echo "poly.dat" >> inpfile2
-echo "$rzeroorder $rfirstorder 0 0 0" >> inpfile2
+echo "$$rzeroorder $$rfirstorder 0 0 0" >> inpfile2
 echo "-10 10 100 0" >> inpfile2
 #
 poly.e < inpfile2 >> compapcorr.log
-mv poly.dat polyr$2.dat
+mv poly.dat polyr$$2.dat
 rm inpfile2
 #
 echo "Enter the x zero order term coefficient from x.log"
@@ -423,11 +445,11 @@ echo "Enter the x first order term coefficient from x.log"
 read xfirstorder
 #
 echo "poly.dat" >> inpfile2
-echo "$xzeroorder $xfirstorder 0 0 0" >> inpfile2
+echo "$$xzeroorder $$xfirstorder 0 0 0" >> inpfile2
 echo "-10 10 100 0" >> inpfile2
 #
 poly.e < inpfile2 >> compapcorr.log
-mv poly.dat polyx$2.dat
+mv poly.dat polyx$$2.dat
 rm inpfile2
 #
 echo "Enter the y zero order term coefficient from y.log"
@@ -436,24 +458,24 @@ echo "Enter the y first order term coefficient from y.log"
 read yfirstorder
 #
 echo "poly.dat" >> inpfile2
-echo "$yzeroorder $yfirstorder 0 0 0" >> inpfile2
+echo "$$yzeroorder $$yfirstorder 0 0 0" >> inpfile2
 echo "-10 10 100 0" >> inpfile2
 #
 poly.e < inpfile2 >> compapcorr.log
-mv poly.dat polyy$2.dat
+mv poly.dat polyy$$2.dat
 rm inpfile2
 #
 #
 echo "macro read macro1.sm" >> inpfile1
-echo "dev postlandfile rplot$2.ps" >> inpfile1
-echo "rplot$2" >> inpfile1
-echo "$1" >> inpfile1
-echo "dev postlandfile xplot$2.ps" >> inpfile1
-echo "xplot$2" >> inpfile1
-echo "$1" >> inpfile1
-echo "dev postlandfile yplot$2.ps" >> inpfile1
-echo "yplot$2" >> inpfile1
-echo "$1" >> inpfile1
+echo "dev postlandfile rplot$$2.ps" >> inpfile1
+echo "rplot$$2" >> inpfile1
+echo "$$1" >> inpfile1
+echo "dev postlandfile xplot$$2.ps" >> inpfile1
+echo "xplot$$2" >> inpfile1
+echo "$$1" >> inpfile1
+echo "dev postlandfile yplot$$2.ps" >> inpfile1
+echo "yplot$$2" >> inpfile1
+echo "$$1" >> inpfile1
 echo "end" >> inpfile1
 #
 # run sm to execute the previous commands.
@@ -465,15 +487,15 @@ open compapcor.log
 #
 # Make PDFs of the plots
 #
-pstopdf rplot$2.ps
-open rplot$2.pdf
-rm rplot$2.ps
-pstopdf xplot$2.ps
-open xplot$2.pdf
-rm xplot$2.ps
-pstopdf yplot$2.ps
-open yplot$2.pdf
-rm yplot$2.ps
+pstopdf rplot$$2.ps
+open rplot$$2.pdf
+rm rplot$$2.ps
+pstopdf xplot$$2.ps
+open xplot$$2.pdf
+rm xplot$$2.ps
+pstopdf yplot$$2.ps
+open yplot$$2.pdf
+rm yplot$$2.ps
 #
 # Clean up
 #
@@ -481,7 +503,8 @@ rm inpfile?
 echo 'You are now ready to apply your aperture correcion.'
 """)
 
-    mkpsfHDIscr = Template("""#!/bin/sh
+# workingDirectory, currentFrame
+mkpsfHDIscr = Template("""#!/bin/sh
 #
 # Shell script to run PSF, ALLSTAR, and SUBSTAR to generate a PSF.
 #
@@ -620,10 +643,11 @@ echo '${currentFrame}3s' >> inpfile8
 daophot < inpfile8 >> mkpsf.log
 """)
 
-    fixMkpsfscr = """#!/bin/tcsh
+# none
+fixMkpsfscr = """#!/bin/tcsh
 
 echo "What is the name of the image? eg 'v01' (no extension) "
-set im = $<
+set im = $$<
 
 echo ""
 echo "Before:"
@@ -634,13 +658,13 @@ echo ""
 
 rm inpfile*
 rm mkpsf.log
-rm "$im"1*""
-rm "$im"2*""
-rm "$im"3*""
-rm "$im"psf.als""
-rm "$im".neinew*""
-rm "$im".psf""
-rm "$im".nei""
+rm "$$im"1*""
+rm "$$im"2*""
+rm "$$im"3*""
+rm "$$im"psf.als""
+rm "$$im".neinew*""
+rm "$$im".psf""
+rm "$$im".nei""
 
 echo ""
 echo "After:"
@@ -650,7 +674,8 @@ ls
 echo ""
 """
 
-    macro1scr = """#!/bin/sh
+# none
+macro1scr = """#!/bin/sh
 #
 # Shell script to make spatial dependency plots
 # Change directory and plot iteration (i.e. xplot1 vs xplot2)
@@ -658,20 +683,20 @@ echo ""
 # first argument is image name, i.e. "v21"
 # second argument is iteration.
 #
-cd /data/n2158_phot/n2158/$1
+cd /data/n2158_phot/n2158/$$1
 rm inpfile
 #
 echo ' ' > inpfile
 echo 'macro read macro1.sm' >> inpfile
-echo "dev postlandfile xplot$2.ps" >> inpfile
-echo "xplot$2" >> inpfile
-echo "$1" >> inpfile
-echo "dev postlandfile yplot$2.ps" >> inpfile
-echo "yplot$2" >> inpfile
-echo "$1" >> inpfile
-echo "dev postlandfile rplot$2.ps" >> inpfile
-echo "rplot$2" >> inpfile
-echo "$1" >> inpfile
+echo "dev postlandfile xplot$$2.ps" >> inpfile
+echo "xplot$$2" >> inpfile
+echo "$$1" >> inpfile
+echo "dev postlandfile yplot$$2.ps" >> inpfile
+echo "yplot$$2" >> inpfile
+echo "$$1" >> inpfile
+echo "dev postlandfile rplot$$2.ps" >> inpfile
+echo "rplot$$2" >> inpfile
+echo "$$1" >> inpfile
 echo 'end' >> inpfile
 #
 # run sm to execute the previous commands.
@@ -680,22 +705,22 @@ sm < inpfile > macro1.log
 #
 # make pdf files
 #
-pstopdf xplot$2.ps
-pstopdf yplot$2.ps
-pstopdf rplot$2.ps
+pstopdf xplot$$2.ps
+pstopdf yplot$$2.ps
+pstopdf rplot$$2.ps
 #
 # open pdf files
 #
-open xplot$2.pdf
-open yplot$2.pdf
-open rplot$2.pdf
+open xplot$$2.pdf
+open yplot$$2.pdf
+open rplot$$2.pdf
 #
 # clean up
 #
 rm inpfile
 #rm macro1.log
-rm xplot$2.ps
-rm yplot$2.ps
-rm rplot$2.ps
+rm xplot$$2.ps
+rm yplot$$2.ps
+rm rplot$$2.ps
 #
 """
