@@ -16,13 +16,13 @@ Usage:       This program will ask for a step number to execute, corresponding t
               by the user, either in terminal output from this program, or in a file saved
               in the working directory.
 """
-import csv
-import io
+#import csv
+#import io
 import os
-import subprocess
-import math
+#import subprocess
+#import math
 import HelperFunctions
-from pyraf import iraf as ir
+#from pyraf import iraf as ir
 
 # top level working directory, with trailing slash. Like
 # '/data/n2158_phot/n2158/'
@@ -32,19 +32,18 @@ frameFWHM = None   # will hold the FWHM later
 optFilesSetup = False  # true if setup has been completed successfully
 
 functionDictionary = {0: 'getWorkingDirectories',
-                         1: 'getFWHM',
-                         2: 'setupOptFiles',
-                         3: 'psfFirstPass',
-                         4: 'psfCandidateSelection',
-                         5: 'psfErrorDeletion',
-                         6: 'neighborStarSubtraction',
-                         7: 'mkpsfScript',
-                         8: 'badPSFSubtractionStarRemoval',
-                         9: 'allstarScript',
-                         10: 'makePlots',
-                         # last function in 'Data Reduction'
-                         11: 'alsedt',
-                      }
+                      1: 'getFWHM',
+                      2: 'setupOptFiles',
+                      3: 'psfFirstPass',
+                      4: 'psfCandidateSelection',
+                      5: 'psfErrorDeletion',
+                      6: 'neighborStarSubtraction',
+                      7: 'mkpsfScript',
+                      8: 'badPSFSubtractionStarRemoval',
+                      9: 'allstarScript',
+                      10: 'makePlots',
+                      # last function in 'Data Reduction'
+                      11: 'alsedt'}
 
 externalProgramDict = {'daophot': ['daophot', True],  # {functionName : [computerFunctionName, exists?]}
                        'compapcorr': ['compapcorrHDI.e', True],
@@ -62,22 +61,22 @@ externalProgramDict = {'daophot': ['daophot', True],  # {functionName : [compute
 def getWorkingDirectories():
     '''Set up the variables for the working folder and directories. Option 0.'''
     question1 = 'Enter the current working directory (ex: /data/n2158_phot/n2158/): '
-    dataSetDirectory = raw_input(question1)
+    setDirectory = raw_input(question1)
 
-    while not os.path.isdir(dataSetDirectory):
+    while not os.path.isdir(setDirectory):
         print 'Invalid path, try again.'
-        dataSetDirectory = raw_input(question1)
+        setDirectory = raw_input(question1)
 
-    if dataSetDirectory[-1] != '/':
-        dataSetDirectory += '/'
+    if setDirectory[-1] != '/':
+        setDirectory += '/'
 
     question2 = 'Enter the frame you want to work on (ex: n21158): '
-    currentFrame = raw_input(question2)
-    while not os.path.isdir(dataSetDirectory + currentFrame):
-        print 'Invalid frame selection for ' + dataSetDirectory + currentFrame + ', try again.'
-        currentFrame = raw_input(question2)
+    frame = raw_input(question2)
+    while not os.path.isdir(setDirectory + frame):
+        print 'Invalid frame selection for ' + setDirectory + frame + ', try again.'
+        frame = raw_input(question2)
 
-    return dataSetDirectory, currentFrame
+    return setDirectory, frame
 
 
 def checkFunctionsExist():
@@ -97,16 +96,16 @@ def checkFunctionsExist():
     return None
 
 
-def optFilesExist(dataSetDirectory, currentFrame):
+def optFilesExist(setDirectory, frame):
     '''Returns true if all options files are in place. Should be called before each function is executed'''
     import OptionFiles
 
-    pathToFile = dataSetDirectory + currentFrame + '/'
+    pathToFile = setDirectory + frame + '/'
     #badFiles = []
     filesExist = True
 
-    for file in OptionFiles.optionFileDict:
-        if os.path.exists(pathToFile):
+    for fileName in OptionFiles.optionFileDict:
+        if os.path.exists(pathToFile + fileName):
             continue
         else:
             filesExist = False
@@ -119,15 +118,15 @@ def optFilesExist(dataSetDirectory, currentFrame):
         return False
 
 
-def setupOptFiles(dataSetDirectory, currentFrame):
+def setupOptFiles(setDirectory, frame):
     '''Sets up the option files'''
     print '\nChecking to see if option files exist...\n'
     import OptionFiles
 
-    opt = OptionFiles(frameFWHM, dataSetDirectory, currentFrame)
+    opt = OptionFiles(frameFWHM, setDirectory, frame)
 
     for fileName in opt.optionFileDict:
-        pathToFile = dataSetDirectory + currentFrame + '/' + fileName
+        pathToFile = setDirectory + frame + '/' + fileName
         if not os.path.exists(pathToFile):
             print 'Option file ' + fileName + ' does not exist.'
             createFile = raw_input(
@@ -234,7 +233,7 @@ while True:
             continue
 
     user_selection = int(user_selection)
-    print('Integer entered. We can pick a function now')
+    print 'Integer entered. We can pick a function now'
     ###
     # Get the FWHM from the current frame.
     #   Try to see if I can get into the daophot window from this program
