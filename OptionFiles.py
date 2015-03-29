@@ -27,7 +27,18 @@ class OptionFiles:
                                  'mkpsfHDI.scr' : mkpsfHDIscr.substitute(workingDirectory=workingDirectoryVar,currentFrame=currentFrameVar),
                                  'fixmkpsf.scr' : fixMkpsfscr,
                                  'macro1.scr' : macro1scr}
-                                 
+
+optionFileDict = {'allstar.opt' : '',
+                        'daophot.opt' : '',
+                         'photo.opt' : '',
+                         'apcorr.opt' : '',
+                         'allstarHDI.scr' : '',
+                         'apcorrHDI.scr' : '',
+                         'compapcorrHDI.scr' :'' ,
+                         'mkpsfHDI.scr' :'',
+                         'fixmkpsf.scr' : '',
+                         'macro1.scr' : ''}
+
 # fwhm
 allStarOpt = Template("""fi=$fwhm
 wa=0

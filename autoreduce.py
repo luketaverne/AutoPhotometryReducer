@@ -46,17 +46,17 @@ functionDictionary = {0: 'getWorkingDirectories',
                          11: 'alsedt',
                       }
 
-externalProgramDict = {'daophot': ['daophot', True], # {functionName : [computerFunctionName, exists?]}
+externalProgramDict = {'daophot': ['daophot', True],  # {functionName : [computerFunctionName, exists?]}
                        'compapcorr': ['compapcorrHDI.e', True],
-                       'pyraf' : ['pyraf', True],
-                       'ds9' : ['ds9', True],
-                       'dao2iraf' : ['dao2iraf.e', True],
-                       'sm' : ['sm', True],
-                       'pstopdf' : ['pstopdf', True],
-                       'alsedt' : ['alsedt.e', True],
-                       'sigrejfit' : ['sigrejfit.e', True],
-                       'poly' : ['poly.e', True],
-                       'apply_apcorr' : ['apply_apcorrHDI.e', True]}
+                       'pyraf': ['pyraf', True],
+                       'ds9': ['ds9', True],
+                       'dao2iraf': ['dao2iraf.e', True],
+                       'sm': ['sm', True],
+                       'pstopdf': ['pstopdf', True],
+                       'alsedt': ['alsedt.e', True],
+                       'sigrejfit': ['sigrejfit.e', True],
+                       'poly': ['poly.e', True],
+                       'apply_apcorr': ['apply_apcorrHDI.e', True]}
 
 
 def getWorkingDirectories():
@@ -65,64 +65,91 @@ def getWorkingDirectories():
   dataSetDirectory = raw_input(question1)
 
   while not os.path.isdir(dataSetDirectory):
-      print 'Invalid path, try again.'
-      dataSetDirectory = raw_input(question1)
+    print 'Invalid path, try again.'
+    dataSetDirectory = raw_input(question1)
 
   if dataSetDirectory[-1] != '/':
-      dataSetDirectory += '/'
+    dataSetDirectory += '/'
 
   question2 = 'Enter the frame you want to work on (ex: n21158): '
   currentFrame = raw_input(question2)
   while not os.path.isdir(dataSetDirectory + currentFrame):
-      print 'Invalid frame selection for ' + dataSetDirectory + currentFrame + ', try again.'
-      currentFrame = raw_input(question2)
+    print 'Invalid frame selection for ' + dataSetDirectory + currentFrame + ', try again.'
+    currentFrame = raw_input(question2)
 
   return dataSetDirectory, currentFrame
 
-def checkFunctionsExist():
-    '''Loop through function dictionary to check if all functions are callable'''
-    print '\nChecking function dictionary to make sure all functions are callable before we start reduction...'
-    problem = False
-    for programKey in externalProgramDict:
-        exists = HelperFunctions.which(externalProgramDict[programKey][0])
-        if not exists:
-            externalProgramDict[programKey][1] = False
-            problem = True
-            print "Cannot execute program " + programKey + " called as '" + externalProgramDict[programKey][0] +"'"
-    if problem:
-        print '\nThe function(s) listed above are not callable. You should fix this before proceeding.'
-    else:
-        print '\nAll functions are callable.'
-    return None
 
-def optionFilesExist( frameDirectory ):
+def checkFunctionsExist():
+  '''Loop through function dictionary to check if all functions are callable'''
+  print '\nChecking function dictionary to make sure all functions are callable before we start reduction...'
+  problem = False
+  for programKey in externalProgramDict:
+    exists = HelperFunctions.which(externalProgramDict[programKey][0])
+    if not exists:
+      externalProgramDict[programKey][1] = False
+      problem = True
+      print "Cannot execute program " + programKey + " called as '" + externalProgramDict[programKey][0] + "'"
+  if problem:
+    print '\nThe function(s) listed above are not callable. You should fix this before proceeding.\n'
+  else:
+    print '\nAll functions are callable.\n'
+  return None
+
+
+def optFilesExist(dataSetDirectory, currentFrame):
   '''Returns true if all options files are in place. Should be called before each function is executed'''
+  import OptionFiles
+
+  pathToFile = dataSetDirectory + currentFrame + '/'
+  #badFiles = []
+  filesExist = True
+
+  for file in OptionFiles.optionFileDict:
+    if os.path.exists(pathToFile):
+      continue
+    else:
+      filesExist = False
+      # badFiles.append(file)
+      continue
+
+  if filesExist:
+    return True
+  else:
+    return False
+
+
+def setupOptFiles(dataSetDirectory, currentFrame):
+  '''Sets up the option files'''
   print '\nChecking to see if option files exist...\n'
   import OptionFiles
 
-  for file in OptionFiles.optionFileDict:
-      if not os.path.exists(frameDirectory + file):
-          print 'Option file ' + file + ' does not exist.'
-          createFile = raw_input('Do you want to create this file from a template? (y/n): ')
-          while createFile not in ['Y', 'y', 'N', 'n']:
-              print 'Invalid response'
-              createFile = raw_input('Do you want to create this file from a template? (y/n): ')
+  opt = OptionFiles(frameFWHM, dataSetDirectory, currentFrame)
 
-          if createFile in ['Y', 'y']:
+  for fileName in opt.optionFileDict:
+    pathToFile = dataSetDirectory + currentFrame + '/' + fileName
+    if not os.path.exists(pathToFile):
+      print 'Option file ' + fileName + ' does not exist.'
+      createFile = raw_input(
+          'Do you want to create this file from a template? (y/n): ')
+      while createFile not in ['Y', 'y', 'N', 'n']:
+        print 'Invalid response'
+        createFile = raw_input(
+            'Do you want to create this file from a template? (y/n): ')
 
-
+      if createFile in ['Y', 'y']:
+        fileHandle = open(pathToFile, 'w')
+        fileHandle.write(opt.optionFileDict[fileName])
+        fileHandle.close()
+      else:
+        continue
 
   return
 
 
 def getFWHM():
 
-  return
-
-
-def setupOptFiles():
-
-  return
+  return 3.01
 
 
 def psfFirstPass():
@@ -139,6 +166,34 @@ def psfCandidateSelection():
 # Ask the user for the directories they want to use
 ###
 dataSetDirectory, currentFrame = getWorkingDirectories()
+checkFunctionsExist()
+
+
+###
+# Get the FWHM from the user
+###
+while True:
+
+  fwhmQ = raw_input(
+      "Do you know the FWHM of this frame? If not, we can go get it together. ")
+  if fwhmQ not in ['y', 'Y', 'n', 'N']:
+    print 'Invalid response'
+    continue
+
+  elif fwhmQ in ['y', 'Y']:
+    fwhm = raw_input("What is the FWHM? ")
+    try:
+      float(fwhm)
+    except ValueError:
+      print 'Unable to cast FWHM to float, try again.'
+      continue
+    frameFWHM = float(fwhm)
+    break
+
+  elif fwhmQ in ['n', 'N']:
+    frameFWHM = getFWHM()
+    break
+
 
 ###
 # Check to see if all of the files we are about to use exist
@@ -146,8 +201,26 @@ dataSetDirectory, currentFrame = getWorkingDirectories()
 #   or offer to copy them from this program. Store them in another
 #   file as heredoc strings to prevent strange formatting problems
 ###
-optionFilesExist(dataSetDirectory + currentFrame + '/')
-checkFunctionsExist()
+
+optFilesSetup = optFilesExist(dataSetDirectory, currentFrame)
+while True:
+  if not optFilesSetup:
+    user_selection = raw_input(
+        "Option files don't seem to exist in this directory. Do you want to set them up?")
+    if user_selection not in ['Y', 'y', 'N', 'n']:
+      print 'Invalid response'
+      continue
+    else:
+      if user_selection in ['n', 'N']:
+        break
+      else:
+        setupOptFiles(dataSetDirectory, currentFrame)
+        if not optFilesExist(dataSetDirectory, currentFrame):
+          print 'I tried setting them up, but they still don\'t appear to exist. Something is wrong.'
+          continue
+        else:
+          break
+
 while True:
   try:
     user_selection = raw_input('What do you want to do? ')
@@ -169,14 +242,6 @@ while True:
   #   a single line of code they can
   ###
   getFWHM()
-
-  ###
-  # Edit the option files: (1)
-  #   I think it's actually a good idea to print them from heredocs
-  #   stored in another file. Then I can avoid dealing with someone
-  #   inserting incorrect spacings
-  ###
-  setupOptFiles()
 
   ###
   # PSF Fitting, First Pass (2)
