@@ -60,106 +60,106 @@ externalProgramDict = {'daophot': ['daophot', True],  # {functionName : [compute
 
 
 def getWorkingDirectories():
-  '''Set up the variables for the working folder and directories. Option 0.'''
-  question1 = 'Enter the current working directory (ex: /data/n2158_phot/n2158/): '
-  dataSetDirectory = raw_input(question1)
-
-  while not os.path.isdir(dataSetDirectory):
-    print 'Invalid path, try again.'
+    '''Set up the variables for the working folder and directories. Option 0.'''
+    question1 = 'Enter the current working directory (ex: /data/n2158_phot/n2158/): '
     dataSetDirectory = raw_input(question1)
 
-  if dataSetDirectory[-1] != '/':
-    dataSetDirectory += '/'
+    while not os.path.isdir(dataSetDirectory):
+        print 'Invalid path, try again.'
+        dataSetDirectory = raw_input(question1)
 
-  question2 = 'Enter the frame you want to work on (ex: n21158): '
-  currentFrame = raw_input(question2)
-  while not os.path.isdir(dataSetDirectory + currentFrame):
-    print 'Invalid frame selection for ' + dataSetDirectory + currentFrame + ', try again.'
+    if dataSetDirectory[-1] != '/':
+        dataSetDirectory += '/'
+
+    question2 = 'Enter the frame you want to work on (ex: n21158): '
     currentFrame = raw_input(question2)
+    while not os.path.isdir(dataSetDirectory + currentFrame):
+        print 'Invalid frame selection for ' + dataSetDirectory + currentFrame + ', try again.'
+        currentFrame = raw_input(question2)
 
-  return dataSetDirectory, currentFrame
+    return dataSetDirectory, currentFrame
 
 
 def checkFunctionsExist():
-  '''Loop through function dictionary to check if all functions are callable'''
-  print '\nChecking function dictionary to make sure all functions are callable before we start reduction...'
-  problem = False
-  for programKey in externalProgramDict:
-    exists = HelperFunctions.which(externalProgramDict[programKey][0])
-    if not exists:
-      externalProgramDict[programKey][1] = False
-      problem = True
-      print "Cannot execute program " + programKey + " called as '" + externalProgramDict[programKey][0] + "'"
-  if problem:
-    print '\nThe function(s) listed above are not callable. You should fix this before proceeding.\n'
-  else:
-    print '\nAll functions are callable.\n'
-  return None
+    '''Loop through function dictionary to check if all functions are callable'''
+    print '\nChecking function dictionary to make sure all functions are callable before we start reduction...'
+    problem = False
+    for programKey in externalProgramDict:
+        exists = HelperFunctions.which(externalProgramDict[programKey][0])
+        if not exists:
+            externalProgramDict[programKey][1] = False
+            problem = True
+            print "Cannot execute program " + programKey + " called as '" + externalProgramDict[programKey][0] + "'"
+    if problem:
+        print '\nThe function(s) listed above are not callable. You should fix this before proceeding.\n'
+    else:
+        print '\nAll functions are callable.\n'
+    return None
 
 
 def optFilesExist(dataSetDirectory, currentFrame):
-  '''Returns true if all options files are in place. Should be called before each function is executed'''
-  import OptionFiles
+    '''Returns true if all options files are in place. Should be called before each function is executed'''
+    import OptionFiles
 
-  pathToFile = dataSetDirectory + currentFrame + '/'
-  #badFiles = []
-  filesExist = True
+    pathToFile = dataSetDirectory + currentFrame + '/'
+    #badFiles = []
+    filesExist = True
 
-  for file in OptionFiles.optionFileDict:
-    if os.path.exists(pathToFile):
-      continue
+    for file in OptionFiles.optionFileDict:
+        if os.path.exists(pathToFile):
+            continue
+        else:
+            filesExist = False
+            # badFiles.append(file)
+            continue
+
+    if filesExist:
+        return True
     else:
-      filesExist = False
-      # badFiles.append(file)
-      continue
-
-  if filesExist:
-    return True
-  else:
-    return False
+        return False
 
 
 def setupOptFiles(dataSetDirectory, currentFrame):
-  '''Sets up the option files'''
-  print '\nChecking to see if option files exist...\n'
-  import OptionFiles
+    '''Sets up the option files'''
+    print '\nChecking to see if option files exist...\n'
+    import OptionFiles
 
-  opt = OptionFiles(frameFWHM, dataSetDirectory, currentFrame)
+    opt = OptionFiles(frameFWHM, dataSetDirectory, currentFrame)
 
-  for fileName in opt.optionFileDict:
-    pathToFile = dataSetDirectory + currentFrame + '/' + fileName
-    if not os.path.exists(pathToFile):
-      print 'Option file ' + fileName + ' does not exist.'
-      createFile = raw_input(
-          'Do you want to create this file from a template? (y/n): ')
-      while createFile not in ['Y', 'y', 'N', 'n']:
-        print 'Invalid response'
-        createFile = raw_input(
-            'Do you want to create this file from a template? (y/n): ')
+    for fileName in opt.optionFileDict:
+        pathToFile = dataSetDirectory + currentFrame + '/' + fileName
+        if not os.path.exists(pathToFile):
+            print 'Option file ' + fileName + ' does not exist.'
+            createFile = raw_input(
+                'Do you want to create this file from a template? (y/n): ')
+            while createFile not in ['Y', 'y', 'N', 'n']:
+                print 'Invalid response'
+                createFile = raw_input(
+                    'Do you want to create this file from a template? (y/n): ')
 
-      if createFile in ['Y', 'y']:
-        fileHandle = open(pathToFile, 'w')
-        fileHandle.write(opt.optionFileDict[fileName])
-        fileHandle.close()
-      else:
-        continue
+            if createFile in ['Y', 'y']:
+                fileHandle = open(pathToFile, 'w')
+                fileHandle.write(opt.optionFileDict[fileName])
+                fileHandle.close()
+            else:
+                continue
 
-  return
+    return
 
 
 def getFWHM():
 
-  return 3.01
+    return 3.01
 
 
 def psfFirstPass():
 
-  return
+    return
 
 
 def psfCandidateSelection():
 
-  return
+    return
 
 
 ###
@@ -174,25 +174,25 @@ checkFunctionsExist()
 ###
 while True:
 
-  fwhmQ = raw_input(
-      "Do you know the FWHM of this frame? If not, we can go get it together. ")
-  if fwhmQ not in ['y', 'Y', 'n', 'N']:
-    print 'Invalid response'
-    continue
+    fwhmQ = raw_input(
+        "Do you know the FWHM of this frame? If not, we can go get it together. ")
+    if fwhmQ not in ['y', 'Y', 'n', 'N']:
+        print 'Invalid response'
+        continue
 
-  elif fwhmQ in ['y', 'Y']:
-    fwhm = raw_input("What is the FWHM? ")
-    try:
-      float(fwhm)
-    except ValueError:
-      print 'Unable to cast FWHM to float, try again.'
-      continue
-    frameFWHM = float(fwhm)
-    break
+    elif fwhmQ in ['y', 'Y']:
+        fwhm = raw_input("What is the FWHM? ")
+        try:
+            float(fwhm)
+        except ValueError:
+            print 'Unable to cast FWHM to float, try again.'
+            continue
+        frameFWHM = float(fwhm)
+        break
 
-  elif fwhmQ in ['n', 'N']:
-    frameFWHM = getFWHM()
-    break
+    elif fwhmQ in ['n', 'N']:
+        frameFWHM = getFWHM()
+        break
 
 
 ###
@@ -204,54 +204,54 @@ while True:
 
 optFilesSetup = optFilesExist(dataSetDirectory, currentFrame)
 while True:
-  if not optFilesSetup:
-    user_selection = raw_input(
-        "Option files don't seem to exist in this directory. Do you want to set them up?")
-    if user_selection not in ['Y', 'y', 'N', 'n']:
-      print 'Invalid response'
-      continue
-    else:
-      if user_selection in ['n', 'N']:
-        break
-      else:
-        setupOptFiles(dataSetDirectory, currentFrame)
-        if not optFilesExist(dataSetDirectory, currentFrame):
-          print 'I tried setting them up, but they still don\'t appear to exist. Something is wrong.'
-          continue
+    if not optFilesSetup:
+        user_selection = raw_input(
+            "Option files don't seem to exist in this directory. Do you want to set them up?")
+        if user_selection not in ['Y', 'y', 'N', 'n']:
+            print 'Invalid response'
+            continue
         else:
-          break
+            if user_selection in ['n', 'N']:
+                break
+            else:
+                setupOptFiles(dataSetDirectory, currentFrame)
+                if not optFilesExist(dataSetDirectory, currentFrame):
+                    print 'I tried setting them up, but they still don\'t appear to exist. Something is wrong.'
+                    continue
+                else:
+                    break
 
 while True:
-  try:
-    user_selection = raw_input('What do you want to do? ')
-    int(user_selection)
-  except ValueError:
-    if user_selection == 'q' or user_selection == 'Q':
-      print 'Goodbye.'
-      break
-    else:
-      print 'Please enter a valid selection'
-      continue
+    try:
+        user_selection = raw_input('What do you want to do? ')
+        int(user_selection)
+    except ValueError:
+        if user_selection == 'q' or user_selection == 'Q':
+            print 'Goodbye.'
+            break
+        else:
+            print 'Please enter a valid selection'
+            continue
 
-  user_selection = int(user_selection)
-  print('Integer entered. We can pick a function now')
-  ###
-  # Get the FWHM from the current frame.
-  #   Try to see if I can get into the daophot window from this program
-  #   and if so, can I find out when the user is done? If not, provide
-  #   a single line of code they can
-  ###
-  getFWHM()
+    user_selection = int(user_selection)
+    print('Integer entered. We can pick a function now')
+    ###
+    # Get the FWHM from the current frame.
+    #   Try to see if I can get into the daophot window from this program
+    #   and if so, can I find out when the user is done? If not, provide
+    #   a single line of code they can
+    ###
+    getFWHM()
 
-  ###
-  # PSF Fitting, First Pass (2)
-  ###
-  psfFirstPass()
+    ###
+    # PSF Fitting, First Pass (2)
+    ###
+    psfFirstPass()
 
-  ###
-  # PSF Candidate Selection (3)
-  ###
-  psfCandidateSelection()
+    ###
+    # PSF Candidate Selection (3)
+    ###
+    psfCandidateSelection()
 
-  ###
-  #
+    ###
+    #
