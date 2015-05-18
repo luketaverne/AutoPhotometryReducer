@@ -31,21 +31,6 @@ currentFrame = ''     # current frame. Like 'n21157'
 frameFWHM = None   # will hold the FWHM later
 optFilesSetup = False  # true if setup has been completed successfully
 
-functionDictionary = {0: 'getWorkingDirectories',
-                         1: 'getFWHM',
-                         2: 'setupOptFiles',
-                         3: 'psfFirstPass',
-                         4: 'psfCandidateSelection',
-                         5: 'psfErrorDeletion',
-                         6: 'neighborStarSubtraction',
-                         7: 'mkpsfScript',
-                         8: 'badPSFSubtractionStarRemoval',
-                         9: 'allstarScript',
-                         10: 'makePlots',
-                         # last function in 'Data Reduction'
-                         11: 'alsedt',
-                      }
-
 externalProgramDict = {'daophot': ['daophot', True],  # {functionName : [computerFunctionName, exists?]}
                        'compapcorr': ['compapcorrHDI.e', True],
                        'pyraf': ['pyraf', True],
@@ -79,6 +64,23 @@ def getWorkingDirectories():
 
     return dataSetDirectory, currentFrame
 
+def startDS9():
+    '''if ds9 is not running, we will start it. Right now I'm going to use a messy subprocess and false killall method.
+     if we ever get the intel mac working with the fortran stuff, you should change this to use the "psutil" python
+     package instead. I can't very easily install it on the PPC mac.'''
+    FNULL = open(os.devnull, 'w')
+    testCall = subprocess.call(['/usr/bin/killall', '-d', 'ds9'], stdout=FNULL)
+
+    # opening ds9 with a subprocess will cause it to die when this program is closed. Open it manually in another
+    # window with 'ds9 &' if you want to avoid this. Or figure out how to create a persistent subprocess within python
+    if testCall == 1:
+        # ds9 is not runnning
+        print 'ds9 doesn\'t appear to be running, starting it. Make sure the window comes up before you try to use ds9 things. I won\'t check again.\n'
+        subprocess.Popen(['ds9'])
+    elif testCall == 0:
+        print 'ds9 is already running'
+
+    return
 
 def checkFunctionsExist():
     '''Loop through function dictionary to check if all functions are callable'''
@@ -97,7 +99,7 @@ def checkFunctionsExist():
     return None
 
 
-def optFilesExist(dataSetDirectory, currentFrame):
+def optFilesExist():
     '''Returns true if all options files are in place. Should be called before each function is executed'''
     import OptionFiles
 
@@ -105,8 +107,8 @@ def optFilesExist(dataSetDirectory, currentFrame):
     #badFiles = []
     filesExist = True
 
-    for file in OptionFiles.optionFileDict:
-        if os.path.exists(pathToFile):
+    for fileName in OptionFiles.optionFileDict:
+        if os.path.exists(pathToFile + fileName):
             continue
         else:
             filesExist = False
@@ -119,12 +121,12 @@ def optFilesExist(dataSetDirectory, currentFrame):
         return False
 
 
-def setupOptFiles(dataSetDirectory, currentFrame):
+def setupOptFiles():
     '''Sets up the option files'''
     print '\nChecking to see if option files exist...\n'
     import OptionFiles
 
-    opt = OptionFiles(frameFWHM, dataSetDirectory, currentFrame)
+    opt = OptionFiles.OptionFiles(frameFWHM, dataSetDirectory, currentFrame)
 
     for fileName in opt.optionFileDict:
         pathToFile = dataSetDirectory + currentFrame + '/' + fileName
@@ -144,27 +146,86 @@ def setupOptFiles(dataSetDirectory, currentFrame):
             else:
                 continue
 
+    print '\nDone dealing with option files\n'
     return
 
 
 def getFWHM():
-
+    '''Gets FWHM, returns the value'''
+    print '\nStarting FWHM\n'
+    print '\nFinished with FWHM\n'
     return 3.01
 
 
 def psfFirstPass():
-
+    '''First time through the PSF'''
+    print '\nStarting PSF First pass\n'
+    print '\nFinished with PSF First pass\n'
     return
 
 
 def psfCandidateSelection():
-
+    '''Picking candidate stars'''
+    print '\nStarting PSF Candidate Selection\n'
+    print '\nFinished with PSF Candidate Selection\n'
     return
 
+def psfErrorDeletion():
+    '''Removing errored stars'''
+    print '\nStarting PSF Error Star Deletion\n'
+    print '\nFinished with PSF Error Star Deletion\n'
+    return
+
+def neighborStarSubtraction():
+    '''Neighbor Star Subtraction'''
+    print '\nStarting Neighbor Star Subtraction\n'
+    print '\nFinished with Neighbor Star Subtraction\n'
+    return
+
+def mkpsfScript():
+    print '\nStarting mkpsf Script\n'
+    print '\nFinished mkpsf Script\n'
+    return
+
+def badPSFSubtractionStarRemoval():
+    print '\nStarting bad PSF subtraction removal\n'
+    print '\nFinished with bad PSF subtraction removal\n'
+    return
+
+def allstarScript():
+    print '\nStarting allstar Script\n'
+    print '\nFinished with allstar Script\n'
+    return
+
+def makePlots():
+    print '\nStarting to make plots\n'
+    print '\nFinished making plots\n'
+    return
+
+def alsedt():
+    print '\nStarting alsedt\n'
+    print '\nFinished with alsedt\n'
+    return
+
+functionDictionary = {0: getWorkingDirectories,
+                         1: getFWHM,
+                         2: setupOptFiles,
+                         3: psfFirstPass,
+                         4: psfCandidateSelection,
+                         5: psfErrorDeletion,
+                         6: neighborStarSubtraction,
+                         7: mkpsfScript,
+                         8: badPSFSubtractionStarRemoval,
+                         9: allstarScript,
+                         10: makePlots,
+                         # last function in 'Data Reduction'
+                         11: alsedt,
+                      }
 
 ###
 # Ask the user for the directories they want to use
 ###
+startDS9()
 dataSetDirectory, currentFrame = getWorkingDirectories()
 checkFunctionsExist()
 
@@ -194,6 +255,7 @@ while True:
         frameFWHM = getFWHM()
         break
 
+print 'done with FWHM stuff'
 
 ###
 # Check to see if all of the files we are about to use exist
@@ -202,11 +264,11 @@ while True:
 #   file as heredoc strings to prevent strange formatting problems
 ###
 
-optFilesSetup = optFilesExist(dataSetDirectory, currentFrame)
+optFilesSetup = optFilesExist()
 while True:
     if not optFilesSetup:
         user_selection = raw_input(
-            "Option files don't seem to exist in this directory. Do you want to set them up?")
+            "\nOption files don't seem to exist in this directory. Do you want to set them up?")
         if user_selection not in ['Y', 'y', 'N', 'n']:
             print 'Invalid response'
             continue
@@ -214,44 +276,60 @@ while True:
             if user_selection in ['n', 'N']:
                 break
             else:
-                setupOptFiles(dataSetDirectory, currentFrame)
-                if not optFilesExist(dataSetDirectory, currentFrame):
+                setupOptFiles()
+                if not optFilesExist():
                     print 'I tried setting them up, but they still don\'t appear to exist. Something is wrong.'
                     continue
                 else:
                     break
+    else:
+        print '\nOption files appear to exist in this directory, moving on...\n'
+        break
 
 while True:
     try:
-        user_selection = raw_input('What do you want to do? ')
+        user_selection = raw_input('What do you want to do? (enter function number or \'h\' for help)  ')
         int(user_selection)
     except ValueError:
         if user_selection == 'q' or user_selection == 'Q':
+            # quit
             print 'Goodbye.'
             break
+        if user_selection == 'h' or user_selection == 'H':
+            # print help menu
+            for (number, name) in functionDictionary.items():
+                print str(number) + ':\t' + name.__name__
+
+            print '\n'
+            continue
         else:
+            # invalid thing entered, try again
             print 'Please enter a valid selection'
             continue
 
     user_selection = int(user_selection)
-    print('Integer entered. We can pick a function now')
+    try:
+        functionDictionary[user_selection]()
+    except KeyError:
+        print 'Invalid function number, try again.'
+        continue
     ###
     # Get the FWHM from the current frame.
     #   Try to see if I can get into the daophot window from this program
     #   and if so, can I find out when the user is done? If not, provide
     #   a single line of code they can
     ###
-    getFWHM()
+    #getFWHM()
 
     ###
     # PSF Fitting, First Pass (2)
     ###
-    psfFirstPass()
+    #psfFirstPass()
 
     ###
     # PSF Candidate Selection (3)
     ###
-    psfCandidateSelection()
+    #psfCandidateSelection()
 
     ###
     #
