@@ -153,8 +153,21 @@ def setupOptFiles():
 def getFWHM():
     '''Gets FWHM, returns the value'''
     print '\nStarting FWHM\n'
+    print 'Opening '+currentFrame+'.imh in DS9. Hover over a star and press \'a\' to see details. The FWHM is under the \'ENCLOSED\' heading.'
+    ir.display(dataSetDirectory + currentFrame + '/' + currentFrame + '.imh', 1)
+    ir.imexam()
+    while True:
+        userIn = raw_input('Please enter the FWHM: ')
+        try:
+            float(userIn)
+        except ValueError:
+            print 'Invalid input, cannot cast to float'
+            continue
+        frameFWHM = float(userIn)
+        break
+
     print '\nFinished with FWHM\n'
-    return 3.01
+    return
 
 
 def psfFirstPass():
@@ -252,7 +265,7 @@ while True:
         break
 
     elif fwhmQ in ['n', 'N']:
-        frameFWHM = getFWHM()
+        getFWHM()
         break
 
 print 'done with FWHM stuff'
