@@ -23,6 +23,7 @@ import subprocess
 import math
 import HelperFunctions
 from pyraf import iraf as ir
+from string import Template
 
 # top level working directory, with trailing slash. Like
 # '/data/n2158_phot/n2158/'
@@ -30,6 +31,8 @@ dataSetDirectory = ''
 currentFrame = ''     # current frame. Like 'n21157'
 frameFWHM = None   # will hold the FWHM later
 optFilesSetup = False  # true if setup has been completed successfully
+
+testing = True
 
 externalProgramDict = {'daophot': ['daophot', True],  # {functionName : [computerFunctionName, exists?]}
                        'compapcorr': ['compapcorrHDI.e', True],
@@ -177,6 +180,41 @@ def psfFirstPass():
     like it, but it might be a dead-end trying to build that from source on the PPC mac pro. This is something
     you may look into once we get to the intel macs, or if you run out of data to reduce (ha).'''
     print '\nStarting PSF First pass\n'
+    psfFirstFile = open(dataSetDirectory + currentFrame + '/' + 'psfFirstPass.in', 'w')
+    psfFirstFile.truncate() # make sure it's blank before we start this.
+    try:
+        os.remove(dataSetDirectory + currentFrame + '/' + currentFrame + '.coo')
+        os.remove(dataSetDirectory + currentFrame + '/' + currentFrame + '.ap')
+    except OSError:
+        pass
+
+    psfCommands = Template('''at ${current_frame}.imh
+nomon
+fi
+1 1
+${current_frame}.coo
+y
+ph
+
+
+${current_frame}.coo
+${current_frame}.ap
+''')
+
+    '''NOTEEEEEE: I am using relative names. I lost ssh access so I can't test this with daophot directly.
+    You might need to change this to explicit paths from the root directory. I think this will be fine, since
+    I am writing the file explcitly to the directory we want, and running it from that directory (maybe the call on the
+    next line needs to give an explicit path?). Just a note on a potential sticking point.'''
+
+    psfFirstFile.write(psfCommands.substitute(current_frame=currentFrame))
+    psfFirstFile.close()
+
+    if not testing:
+        subprocess.call([externalProgramDict['daophot'][0], '<', 'psfFirstPass.in', '>>', currentFrame + '.log'])
+
+    '''I'm not including the optional step from the manual. You really only need to do that if there are problems'''
+
+    print '\nCheck the log, record the number of stars and the estimated magnitude limit'
     print '\nFinished with PSF First pass\n'
     return
 
@@ -184,6 +222,49 @@ def psfFirstPass():
 def psfCandidateSelection():
     '''Picking candidate stars'''
     print '\nStarting PSF Candidate Selection\n'
+    while True:
+        psfCandidate = open(dataSetDirectory + currentFrame + '/' + 'psfCandidate.in', 'w')
+        psfCandidate.truncate() #make sure it's blank before we start this.
+        try:
+            os.remove(dataSetDirectory + currentFrame + '/' + currentFrame + '.lst')
+        except OSError:
+            pass
+
+        numStars = 0
+        magLimit = 0
+
+        while True:
+            try:
+                numStars = int(raw_input('Number of stars? '))
+                magLimit = float(raw_input('Magnitude limit? '))
+            except ValueError:
+                print 'Invalid input, try again.'
+                continue
+            break
+
+        psfCommands = Template('''at ${current_frame}.imh
+nomon
+pi
+${current_frame}.ap
+${num_stars} ${mag_limit}
+${current_frame}.lst
+''')
+
+
+        psfCandidate.write(psfCommands.substitute(current_frame=currentFrame,num_stars=numStars,mag_limit=magLimit))
+        psfCandidate.close()
+
+        if not testing:
+            subprocess.call([externalProgramDict['daophot'][0], '<', 'psfCandidate.in', '>>', currentFrame + '.log'])
+
+        userHappy = raw_input('Check the log. Are you okay with the number of stars? (y/n) ')
+        if userHappy in ['y','Y']:
+            break
+        else:
+            print 'Starting over'
+
+    print '\nCheck the log, record the number of stars.'
+    print 'IF THIS IS A LONG EXPOSURE: go edit ' + currentFrame + '.lst so that it has 100-200 stars, as described in the manual'
     print '\nFinished with PSF Candidate Selection\n'
     return
 
@@ -303,7 +384,11 @@ while True:
         print '\nOption files appear to exist in this directory, moving on...\n'
         break
 
-
+'''Going to make this the master log file. I'm only going to add to it, never delete it,
+so if you want it deleted at some point, just rm it and this will recreate it blank'''
+if not os.path.exists(dataSetDirectory + currentFrame + '/' + currentFrame + '.log'):
+    # create the file, close it. This is so we can always use >> in our scripts
+    fileGuy = open(dataSetDirectory + currentFrame + '/' + currentFrame + '.log', 'w').close()
 
 ###
 #
