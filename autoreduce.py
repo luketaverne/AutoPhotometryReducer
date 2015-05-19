@@ -172,6 +172,10 @@ def getFWHM():
 
 def psfFirstPass():
     '''First time through the PSF'''
+    '''I'm going to write this in the old way, by creating a list of input commands in a text file,
+    saving it, then running that into daophot. This isn't really optimal. I'd like to use pexpect, or something
+    like it, but it might be a dead-end trying to build that from source on the PPC mac pro. This is something
+    you may look into once we get to the intel macs, or if you run out of data to reduce (ha).'''
     print '\nStarting PSF First pass\n'
     print '\nFinished with PSF First pass\n'
     return
@@ -298,6 +302,15 @@ while True:
     else:
         print '\nOption files appear to exist in this directory, moving on...\n'
         break
+
+
+
+###
+#
+# Main program loop. Option files exist, we have the fwhm. Can reduce now.
+#
+###
+
 
 while True:
     try:
