@@ -13,7 +13,17 @@ GENERAL REMARKS:
 
 All iraf and pyraf commands can be used from within python as long as the library has been imported. At this time,
 daophot.e must be run using separate input files (subprocess.Popen and communicate only allow you to send data
-once over the pipe before it closes. Silly, but that's how it works.). 
+once over the pipe before it closes. Silly, but that's how it works.).
+
+INSTALLATION:
+Put this program in a folder somewhere. Create an executable (call it `autoreduce` or something) and put it
+somewhere in your path. The executable should call 'python /path/to/this/program/autoreduce.py'.
+
+This (might) help alleviate trying to make *all* paths explicit within the program. I've
+made them explicit where I could easily, and not messily, do that. Be aware that there may be problems
+with some of the relative paths. Just follow the template I used on my explicit paths and you should
+be fine. Everything is parceled up nicely into discrete sets of functions, so it shouldn't take too long
+to fix problems with this.
 
 USAGE:
 

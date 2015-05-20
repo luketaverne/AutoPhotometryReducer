@@ -44,7 +44,8 @@ externalProgramDict = {'daophot': ['daophot', True],  # {functionName : [compute
                        'alsedt': ['alsedt.e', True],
                        'sigrejfit': ['sigrejfit.e', True],
                        'poly': ['poly.e', True],
-                       'apply_apcorr': ['apply_apcorrHDI.e', True]}
+                       'apply_apcorr': ['apply_apcorrHDI.e', True],
+                       'sublst': ['sublst.e', True]}
 
 
 def getWorkingDirectories():
@@ -157,8 +158,14 @@ def getFWHM():
     '''Gets FWHM, returns the value'''
     print '\nStarting FWHM\n'
     print 'Opening '+currentFrame+'.imh in DS9. Hover over a star and press \'a\' to see details. The FWHM is under the \'ENCLOSED\' heading.'
-    ir.display(dataSetDirectory + currentFrame + '/' + currentFrame + '.imh', 1)
-    ir.imexam()
+
+    try:
+        ir.display(dataSetDirectory + currentFrame + '/' + currentFrame + '.imh', 1)
+        ir.imexam()
+    except:
+        print 'There was a problem using the iraf package. Try opening \'ds9 &\' in another window'
+        return
+
     while True:
         userIn = raw_input('Please enter the FWHM: ')
         try:
@@ -329,34 +336,270 @@ ${current_frame}.psf
         pass
 
     if not testing:
-        subprocess.call([externalProgramDict['daophot'][0],currentFrame+'.lst',currentFrame+'.iraf'])
+        subprocess.call([externalProgramDict['dao2iraf'][0],currentFrame+'.lst',currentFrame+'.iraf'])
 
     print '\nFinished with PSF Error Star Deletion\n'
     return
 
 def neighborStarSubtraction():
     '''Neighbor Star Subtraction'''
-    print '\nStarting Neighbor Star Subtraction\n'
+    keepGoing = True
+    while keepGoing:
+        print '\nStarting Neighbor Star Subtraction\n'
+        if not os.path.exists(dataSetDirectory + currentFrame + '/' + currentFrame + '.iraf'):
+            print currentFrame + '.iraf doesn\'t appear to exist. Please go create it then run this step again.'
+            return
+
+        if not os.path.exists(dataSetDirectory + currentFrame + '/' + currentFrame + '.lst'):
+            print currentFrame + '.lst doesn\'t appear to exist. Please go create it then run this step again.'
+            return
+
+        skipStarSelection = False
+        if os.path.exists(dataSetDirectory + currentFrame + '/sub_nonei.lst'):
+            while True:
+                deleteNoneiList = raw_input('sub_nonei.lst exists. Do you want me to delete it? (y/n)')
+                if deleteNoneiList in ['y','Y']:
+                    try:
+                        os.remove(dataSetDirectory + currentFrame + '/sub_nonei.lst')
+                    except OSError:
+                        print 'unable to delete sub_nonei.lst'
+
+                    break
+                elif deleteNoneiList in ['n','N']:
+                    skipStarSelection = True
+                    break
+                else:
+                    print 'Invalid selection, try again'
+                    continue
+
+
+        try:
+            #getting rid of the files we'll generate in this step before we start
+            os.remove(dataSetDirectory + currentFrame + '/' + currentFrame + '_nonei.lst')
+        except OSError:
+            #python gives an error if the file doesn't exist. We don't care.
+            pass
+
+        if not skipStarSelection:
+            try:
+                ir.display(dataSetDirectory + currentFrame + '/' + currentFrame + '.imh', 1)
+                ir.tvmark(1,dataSetDirectory + currentFrame + '/' + currentFrame + '.iraf',mark='circle',radii=10,color=204)
+                print 'In ds9, press \'a\' over all marked stars that have neighbors that are too close.'
+                ir.tvmark(1,dataSetDirectory + currentFrame + '/sub_nonei.lst', interactive='yes',number='no',mark='circle',radii=10,color=205)
+            except:
+                print 'There was a problem using the iraf package. Try opening \'ds9 &\' in another window and run this step again.'
+                return
+
+        # running sublst.e
+        if not os.path.exists(dataSetDirectory + currentFrame + '/sub_nonei.lst'):
+            print 'sub_nonei.lst doesn\'t appear to exist. Please go create it then run this step again.'
+            return
+
+        # below may need explicit paths, depending on where you run the application from
+        sublst1 = Template('''${current_frame}.lst
+sub_nonei.lst
+${current_frame}_nonei.lst
+5 5
+''')
+        sublstFile = open(dataSetDirectory + currentFrame + '/' + 'sublst1.in', 'w')
+        sublstFile.truncate() #make sure it's blank before we start this.
+        sublstFile.write(sublst1.substitute(current_frame=currentFrame))
+        sublstFile.close()
+
+        if not testing:
+            subprocess.call([externalProgramDict['sublst'][0],'<','sublst1.in'])
+
+        #running daophot one more time
+        psfCandidate = open(dataSetDirectory + currentFrame + '/' + 'psfNeighborStars.in', 'w')
+        psfCandidate.truncate() #make sure it's blank before we start this.
+
+        psfCommands = Template('''at ${current_frame}.imh
+nomon
+ps
+${current_frame}.ap
+${current_frame}_nonei.lst
+${current_frame}_nonei.psf
+''')
+
+        psfCandidate.write(psfCommands.substitute(current_frame=currentFrame))
+        psfCandidate.close()
+
+        if not testing:
+            # there might be a hang here if it finds bad stars. Could just insert a bunch of 'y' lines into the
+            # template above if you need to
+            subprocess.call([externalProgramDict['daophot'][0], '<', 'psfNeighborStars.in', '>>', currentFrame + '.log'])
+
+        while True:
+            userHappy = raw_input('Go get the chi squared value from the log. Is this okay? (y/n)')
+            if userHappy in ['y','Y']:
+                keepGoing = False
+                break
+            elif userHappy in ['n', 'N']:
+                keepGoing = True
+                break
+            else:
+                print 'Invalid selection, try again'
+                continue
+
     print '\nFinished with Neighbor Star Subtraction\n'
     return
 
 def mkpsfScript():
     print '\nStarting mkpsf Script\n'
+    #this could hang, since scripts might not actually exit and return something when they're done.
+    # user `subprocess.Popen()`` instead of `subprocess.call()` here if that happens
+    subprocess.call('./mkpsf.scr')
+    while not os.path.exists(dataSetDirectory + currentFrame + '/' + currentFrame + '3s.imh'):
+        #mkpsf is not done
+        continue
+
     print '\nFinished mkpsf Script\n'
     return
 
 def badPSFSubtractionStarRemoval():
-    print '\nStarting bad PSF subtraction removal\n'
+    keepGoing = True
+    while keepGoing:
+        print '\nStarting bad PSF subtraction removal\n'
+        if not os.path.exists(dataSetDirectory + currentFrame + '/' + currentFrame + '.iraf'):
+            print currentFrame + '.iraf doesn\'t appear to exist. Please go create it then run this step again.'
+            return
+
+        if not os.path.exists(dataSetDirectory + currentFrame + '/' + currentFrame + '.lst'):
+            print currentFrame + '.lst doesn\'t appear to exist. Please go create it then run this step again.'
+            return
+
+        skipStarSelection = False
+        if os.path.exists(dataSetDirectory + currentFrame + '/sub.lst'):
+            while True:
+                deleteSubList = raw_input('sub.lst exists. Do you want me to delete it? (y/n)')
+                if deleteSubList in ['y','Y']:
+                    try:
+                        os.remove(dataSetDirectory + currentFrame + '/sub.lst')
+                    except OSError:
+                        print 'unable to delete sub.lst'
+
+                    break
+                elif deleteSubList in ['n','N']:
+                    skipStarSelection = True
+                    break
+                else:
+                    print 'Invalid selection, try again'
+                    continue
+
+
+        try:
+            #getting rid of the files we'll generate in this step before we start
+            os.remove(dataSetDirectory + currentFrame + '/' + currentFrame + '_2.lst')
+            os.remove(dataSetDirectory + currentFrame + '/' + currentFrame + '3s.psf')
+        except OSError:
+            #python gives an error if the file doesn't exist. We don't care.
+            pass
+
+        if not skipStarSelection:
+            try:
+                ir.display(dataSetDirectory + currentFrame + '/' + currentFrame + '.imh', 2)
+                ir.tvmark(2,dataSetDirectory + currentFrame + '/' + currentFrame + '.iraf',mark='circle',radii=10,color=204)
+                print 'In ds9, press \'a\' over all stars with subtraction errors.'
+                ir.tvmark(2,dataSetDirectory + currentFrame + '/sub.lst', interactive='yes',number='no',mark='circle',radii=10,color=205)
+            except:
+                print 'There was a problem using the iraf package. Try opening \'ds9 &\' in another window and run this step again.'
+                return
+
+        # running sublst.e
+        if not os.path.exists(dataSetDirectory + currentFrame + '/sub.lst'):
+            print 'sub.lst doesn\'t appear to exist. Please go create it then run this step again.'
+            return
+
+        # below may need explicit paths, depending on where you run the application from
+        sublst2 = Template('''${current_frame}.lst
+sub.lst
+${current_frame}_2.lst
+5 5
+''')
+        sublstFile = open(dataSetDirectory + currentFrame + '/' + 'sublst2.in', 'w')
+        sublstFile.truncate() #make sure it's blank before we start this.
+        sublstFile.write(sublst2.substitute(current_frame=currentFrame))
+        sublstFile.close()
+
+        if not testing:
+            subprocess.call([externalProgramDict['sublst'][0],'<','sublst2.in'])
+
+        #running daophot one more time
+        if not os.path.exists(dataSetDirectory + currentFrame + '/' + currentFrame + '3s.imh'):
+            print currentFrame + '3s.imh doesn\'t appear to exist. Please go create it then run this step again.'
+            return
+
+        psfCandidate = open(dataSetDirectory + currentFrame + '/' + 'psfSubErrorStars.in', 'w')
+        psfCandidate.truncate() #make sure it's blank before we start this.
+
+        psfCommands = Template('''at ${current_frame}3s.imh
+nomon
+ps
+${current_frame}.ap
+${current_frame}_2.lst
+${current_frame}3s.psf
+''')
+
+        psfCandidate.write(psfCommands.substitute(current_frame=currentFrame))
+        psfCandidate.close()
+
+        if not testing:
+            # there might be a hang here if it finds bad stars. Could just insert a bunch of 'y' lines into the
+            # template above if you need to
+            subprocess.call([externalProgramDict['daophot'][0], '<', 'psfSubErrorStars.in', '>>', currentFrame + '.log'])
+
+        while True:
+            userHappy = raw_input('Go get the chi squared value from the log. Is this okay? (y/n)')
+            if userHappy in ['y','Y']:
+                keepGoing = False
+                break
+            elif userHappy in ['n', 'N']:
+                keepGoing = True
+                break
+            else:
+                print 'Invalid selection, try again'
+                continue
+
     print '\nFinished with bad PSF subtraction removal\n'
     return
 
 def allstarScript():
+    '''I'm not cleaning up after this script. You'll have to delete the output files from it
+    manually if something goes wrong. Feel free to automate this as I've done in the other
+    functions above if you want.'''
     print '\nStarting allstar Script\n'
+    #this could hang, since scripts might not actually exit and return something when they're done
+    # user `subprocess.Popen()`` instead of `subprocess.call()` here if that happens
+    subprocess.call('./allstarHDI.scr')
+    while not os.path.exists(dataSetDirectory + currentFrame + '/' + currentFrame + 'sub2.imh'):
+        #mkpsf is not done
+        continue
+
+    try:
+        ir.display(dataSetDirectory + currentFrame + '/' + currentFrame + 'sub2.imh', 3)
+    except:
+        print 'There was a problem displaying ' + currentFrame + 'sub2.imh with iraf. Try it in another window.'
+
+    while True:
+        userHappy = raw_input('Does the image in frame 3 look okay? (y/n) ')
+        if userHappy in ['y','Y']:
+            break
+        elif userHappy in ['n', 'N']:
+            print 'Okay. You should cleanup the output files and run this step again.'
+            return
+        else:
+            print 'Invalid selection, try again.'
+            continue
+
+    if not testing:
+        subprocess.call([externalProgramDict['dao2iraf'][0],currentFrame+'.als2','als.iraf'])
+
     print '\nFinished with allstar Script\n'
     return
 
 def makePlots():
     print '\nStarting to make plots\n'
+    
     print '\nFinished making plots\n'
     return
 
@@ -482,23 +725,3 @@ while True:
     except KeyError:
         print 'Invalid function number, try again.'
         continue
-    ###
-    # Get the FWHM from the current frame.
-    #   Try to see if I can get into the daophot window from this program
-    #   and if so, can I find out when the user is done? If not, provide
-    #   a single line of code they can
-    ###
-    #getFWHM()
-
-    ###
-    # PSF Fitting, First Pass (2)
-    ###
-    #psfFirstPass()
-
-    ###
-    # PSF Candidate Selection (3)
-    ###
-    #psfCandidateSelection()
-
-    ###
-    #
