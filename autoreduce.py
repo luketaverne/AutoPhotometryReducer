@@ -183,9 +183,11 @@ def psfFirstPass():
     psfFirstFile = open(dataSetDirectory + currentFrame + '/' + 'psfFirstPass.in', 'w')
     psfFirstFile.truncate() # make sure it's blank before we start this.
     try:
+        #getting rid of the files we'll generate in this step before we start
         os.remove(dataSetDirectory + currentFrame + '/' + currentFrame + '.coo')
         os.remove(dataSetDirectory + currentFrame + '/' + currentFrame + '.ap')
     except OSError:
+        #python gives an error if the file doesn't exist. We don't care.
         pass
 
     psfCommands = Template('''at ${current_frame}.imh
@@ -226,8 +228,10 @@ def psfCandidateSelection():
         psfCandidate = open(dataSetDirectory + currentFrame + '/' + 'psfCandidate.in', 'w')
         psfCandidate.truncate() #make sure it's blank before we start this.
         try:
+            #getting rid of the files we'll generate in this step before we start
             os.remove(dataSetDirectory + currentFrame + '/' + currentFrame + '.lst')
         except OSError:
+            #python gives an error if the file doesn't exist. We don't care.
             pass
 
         numStars = 0
@@ -257,6 +261,11 @@ ${current_frame}.lst
         if not testing:
             subprocess.call([externalProgramDict['daophot'][0], '<', 'psfCandidate.in', '>>', currentFrame + '.log'])
 
+        # we could probably read in the file and use a regexp to find the number of stars
+        # and display it right here. Keep in mind, the log will contain multiple of these
+        # patterns, you want the last one. Either find all of them and get the last occurance
+        # (messy way), or figure out how to do a reverse direction regexp search (right to left).
+        # php has this function, I'm not sure if python does though.
         userHappy = raw_input('Check the log. Are you okay with the number of stars? (y/n) ')
         if userHappy in ['y','Y']:
             break
@@ -271,6 +280,57 @@ ${current_frame}.lst
 def psfErrorDeletion():
     '''Removing errored stars'''
     print '\nStarting PSF Error Star Deletion\n'
+    redoPsf = True
+    while redoPsf:
+        print 'Creating ' + currentFrame + '.psf\n'
+        psfCandidate = open(dataSetDirectory + currentFrame + '/' + 'psfErrorDeletion.in', 'w')
+        psfCandidate.truncate() #make sure it's blank before we start this.
+        try:
+            #getting rid of the files we'll generate in this step before we start
+            os.remove(dataSetDirectory + currentFrame + '/' + currentFrame + '.psf')
+        except OSError:
+            #python gives an error if the file doesn't exist. We don't care.
+            pass
+
+        psfCommands = Template('''at ${current_frame}.imh
+nomon
+ps
+${current_frame}.ap
+${current_frame}.lst
+${current_frame}.psf
+''')
+
+        psfCandidate.write(psfCommands.substitute(current_frame=currentFrame))
+        psfCandidate.close()
+
+        if not testing:
+            subprocess.call([externalProgramDict['daophot'][0], '<', 'psfErrorDeletion.in', '>>', currentFrame + '.log'])
+
+        while True:
+            badStars = raw_input('Check the log. Were there any stars with errors? (y/n) ')
+            if badStars in ['y','Y']:
+                # stars with errors, run again
+                redoPsf = True # I know this is redundant, leaving in for clarity.
+                break
+            elif badStars in ['n', 'N']:
+                # no more errors, move on.
+                redoPsf = False
+                break
+            else:
+                print 'Invalid input, try again'
+                continue
+
+    #now we can delete the old .iraf file (if there is one), and make a new one
+    try:
+        #getting rid of the files we'll generate in this step before we start
+        os.remove(dataSetDirectory + currentFrame + '/' + currentFrame + '.iraf')
+    except OSError:
+        #python gives an error if the file doesn't exist. We don't care.
+        pass
+
+    if not testing:
+        subprocess.call([externalProgramDict['daophot'][0],currentFrame+'.lst',currentFrame+'.iraf'])
+
     print '\nFinished with PSF Error Star Deletion\n'
     return
 
@@ -352,8 +412,6 @@ while True:
     elif fwhmQ in ['n', 'N']:
         getFWHM()
         break
-
-print 'done with FWHM stuff'
 
 ###
 # Check to see if all of the files we are about to use exist
