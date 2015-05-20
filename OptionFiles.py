@@ -26,7 +26,7 @@ class OptionFiles:
                                  'compapcorrHDI.scr' : compApCorrHDIscr.substitute(),
                                  'mkpsfHDI.scr' : mkpsfHDIscr.substitute(workingDirectory=workingDirectoryVar,currentFrame=currentFrameVar),
                                  'fixmkpsf.scr' : fixMkpsfscr,
-                                 'macro1.scr' : macro1scr,
+                                 'macro1.scr' : macro1scr.substitute(workingDirectory=workingDirectoryVar),
                                  'magChiRoundPlot.scr' : magChiRoundPlotscr.substitute(workingDirectory=workingDirectoryVar,currentFrame=currentFrameVar)}
 
 optionFileDict = {'allstar.opt' : '',
@@ -688,8 +688,8 @@ ls
 echo ""
 """
 
-# none
-macro1scr = """#!/bin/sh
+#workingDirectory
+macro1scr = Template("""#!/bin/sh
 #
 # Shell script to make spatial dependency plots
 # Change directory and plot iteration (i.e. xplot1 vs xplot2)
@@ -697,7 +697,7 @@ macro1scr = """#!/bin/sh
 # first argument is image name, i.e. "v21"
 # second argument is iteration.
 #
-cd /data/n2158_phot/n2158/$$1
+cd cd ${workingDirectory}$$1
 rm inpfile
 #
 echo ' ' > inpfile
@@ -737,7 +737,7 @@ rm xplot$$2.ps
 rm yplot$$2.ps
 rm rplot$$2.ps
 #
-"""
+""")
 
 #workingDirectory, currentFrame
 magChiRoundPlotscr = Template("""#!/bin/sh
