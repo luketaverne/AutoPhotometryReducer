@@ -26,7 +26,8 @@ class OptionFiles:
                                  'compapcorrHDI.scr' : compApCorrHDIscr.substitute(),
                                  'mkpsfHDI.scr' : mkpsfHDIscr.substitute(workingDirectory=workingDirectoryVar,currentFrame=currentFrameVar),
                                  'fixmkpsf.scr' : fixMkpsfscr,
-                                 'macro1.scr' : macro1scr}
+                                 'macro1.scr' : macro1scr,
+                                 'magChiRoundPlot.scr' : magChiRoundPlotscr.substitute(workingDirectory=workingDirectoryVar,currentFrame=currentFrameVar)}
 
 optionFileDict = {'allstar.opt' : '',
                         'daophot.opt' : '',
@@ -37,7 +38,8 @@ optionFileDict = {'allstar.opt' : '',
                          'compapcorrHDI.scr' :'' ,
                          'mkpsfHDI.scr' :'',
                          'fixmkpsf.scr' : '',
-                         'macro1.scr' : ''}
+                         'macro1.scr' : '',
+                         'magChiRoundPlot.scr' : ''}
 
 # fwhm
 allStarOpt = Template("""fi=$fwhm
@@ -736,3 +738,46 @@ rm yplot$$2.ps
 rm rplot$$2.ps
 #
 """
+
+#workingDirectory, currentFrame
+magChiRoundPlotscr = Template("""#!/bin/sh
+#
+cd ${workingDirectory}${currentFrame}
+rm inpfile
+rm chiplot.pdf roundplot.pdf magplot.pdf
+#
+echo ' ' > inpfile
+echo 'macro read macro1.sm' >> inpfile
+echo "dev postlandfile magplot.ps" >> inpfile
+echo "magplot" >> inpfile
+echo "dev postlandfile chiplot.ps" >> inpfile
+echo "chiplot" >> inpfile
+echo "dev postlandfile roundplot.ps" >> inpfile
+echo "roundplot" >> inpfile
+echo 'end' >> inpfile
+#
+# run sm to execute the previous commands.
+#
+sm < inpfile > macro1.log
+#
+# make pdf files
+#
+pstopdf magplot.ps
+pstopdf chiplot.ps
+pstopdf roundplot.ps
+#
+# open pdf files
+#
+open magplot.pdf
+open chiplot.pdf
+open roundplot.pdf
+#
+# clean up
+#
+rm inpfile
+#rm macro1.log
+rm magplot.ps
+rm chiplot.ps
+rm roundplot.ps
+#
+""")
