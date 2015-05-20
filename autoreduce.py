@@ -45,7 +45,8 @@ externalProgramDict = {'daophot': ['daophot', True],  # {functionName : [compute
                        'sigrejfit': ['sigrejfit.e', True],
                        'poly': ['poly.e', True],
                        'apply_apcorr': ['apply_apcorrHDI.e', True],
-                       'sublst': ['sublst.e', True]}
+                       'sublst': ['sublst.e', True],
+                       'magChiRoundPlotscr' : ['magChiRoundPlot.scr', True]}
 
 
 def getWorkingDirectories():
@@ -383,7 +384,7 @@ def neighborStarSubtraction():
         if not skipStarSelection:
             try:
                 ir.display(dataSetDirectory + currentFrame + '/' + currentFrame + '.imh', 1)
-                ir.tvmark(1,dataSetDirectory + currentFrame + '/' + currentFrame + '.iraf',mark='circle',radii=10,color=204)
+                ir.tvmark(1,dataSetDirectory + currentFrame + '/' + currentFrame + '.iraf',number='no',mark='circle',radii=10,color=204)
                 print 'In ds9, press \'a\' over all marked stars that have neighbors that are too close.'
                 ir.tvmark(1,dataSetDirectory + currentFrame + '/sub_nonei.lst', interactive='yes',number='no',mark='circle',radii=10,color=205)
             except:
@@ -498,7 +499,7 @@ def badPSFSubtractionStarRemoval():
         if not skipStarSelection:
             try:
                 ir.display(dataSetDirectory + currentFrame + '/' + currentFrame + '.imh', 2)
-                ir.tvmark(2,dataSetDirectory + currentFrame + '/' + currentFrame + '.iraf',mark='circle',radii=10,color=204)
+                ir.tvmark(2,dataSetDirectory + currentFrame + '/' + currentFrame + '.iraf',number='no',mark='circle',radii=10,color=204)
                 print 'In ds9, press \'a\' over all stars with subtraction errors.'
                 ir.tvmark(2,dataSetDirectory + currentFrame + '/sub.lst', interactive='yes',number='no',mark='circle',radii=10,color=205)
             except:
@@ -599,12 +600,55 @@ def allstarScript():
 
 def makePlots():
     print '\nStarting to make plots\n'
-    
+    subprocess.call([externalProgramDict['magChiRoundPlotscr'][0]])
     print '\nFinished making plots\n'
     return
 
 def alsedt():
     print '\nStarting alsedt\n'
+    if not os.path.exists(dataSetDirectory + currentFrame + '/' + currentFrame + '.als2'):
+        print currentFrame + '.als2 doesn\'t appear to exist. Please go create it then run this step again.'
+        return
+
+    psfCandidate = open(dataSetDirectory + currentFrame + '/' + 'alsedt.in', 'w')
+    psfCandidate.truncate() #make sure it's blank before we start this.
+
+    #string below assumes you're not using a nonlinear mag cut. Add another
+    # variable if this becomes a thing you need often.
+    psfCommands = Template('''${current_frame}.als2
+edt${current_frame}.als2
+2
+0.1
+0
+2
+0.2
+''')
+
+    psfCandidate.write(psfCommands.substitute(current_frame=currentFrame))
+    psfCandidate.close()
+
+    if not testing:
+        subprocess.call([externalProgramDict['alsedt'][0], '<', 'alsedt.in', '>>', currentFrame + '.log'])
+
+    if not os.path.exists(dataSetDirectory + currentFrame + '/' + currentFrame + '.als2'):
+        print 'Something went wrong. ' + currentFrame + '.als2 doesn\'t appear to exist.'
+        return
+
+    if not testing:
+        subprocess.call([externalProgramDict['dao2iraf'][0],'edt' + currentFrame+'.als2','edt.iraf'])
+
+    if not os.path.exists(dataSetDirectory + currentFrame + '/' + 'edt.iraf'):
+        print 'Something went wrong. edt.iraf doesn\'t appear to exist.'
+        return
+
+    try:
+        ir.display(dataSetDirectory + currentFrame + '/' + currentFrame + '.imh', 1)
+        ir.tvmark(1,dataSetDirectory + currentFrame + '/edt.iraf',number='no',mark='point',pointsize=2,color=204)
+    except:
+        print 'There was a problem using the iraf package. Try opening \'ds9 &\' in another window and run this step again.'
+        return
+
+    print 'There should be a mark on every non-saturated star in frame 1.'
     print '\nFinished with alsedt\n'
     return
 
